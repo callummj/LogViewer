@@ -1,19 +1,19 @@
 @echo off
 setlocal EnableDelayedExpansion
-chcp 65001 >nul
-title LogViewer — Release Builder
+title LogViewer Release Builder
 
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 ::  Paths
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 set "SCRIPT_DIR=%~dp0"
 set "PS_SCRIPT=%SCRIPT_DIR%build.ps1"
 set "VERSION_PROPS=%SCRIPT_DIR%version.props"
-set "TMPNOTES=%TEMP%\logviewer_notes_%RANDOM%.txt"
+set "TMPNOTES=%TEMP%\lv_notes_%RANDOM%.txt"
+set "TMPGETVER=%TEMP%\lv_getver_%RANDOM%.ps1"
 
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 ::  Header
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 cls
 echo.
 echo  ============================================================
@@ -21,25 +21,21 @@ echo    LogViewer  -  Release Builder
 echo  ============================================================
 echo.
 
-:: Read current version from version.props using PowerShell
-for /f "delims=" %%v in ('powershell -NoProfile -Command ^
-    "[xml]$x = Get-Content '%VERSION_PROPS%'; ^
-     '{0}.{1}.{2}' -f $x.Project.PropertyGroup.VersionMajor, ^
-                       $x.Project.PropertyGroup.VersionMinor, ^
-                       $x.Project.PropertyGroup.VersionPatch" 2^>nul') do (
-    set "CURRENT_VERSION=%%v"
-)
-if not defined CURRENT_VERSION set "CURRENT_VERSION=unknown"
+:: Write a tiny PS1 to read the version - avoids $-escaping issues in cmd
+echo [xml]$x = Get-Content '%VERSION_PROPS%'; $x.Project.PropertyGroup.VersionMajor + '.' + $x.Project.PropertyGroup.VersionMinor + '.' + $x.Project.PropertyGroup.VersionPatch > "%TMPGETVER%"
+set "CURRENT_VERSION=unknown"
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%TMPGETVER%" 2^>nul`) do set "CURRENT_VERSION=%%v"
+del "%TMPGETVER%" >nul 2>&1
 
 echo    Current version : %CURRENT_VERSION%
 echo.
 
-:: ─────────────────────────────────────────────────────────────────────────────
-::  Step 1 — Version number
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
+::  Step 1 - Version number
+:: ---------------------------------------------------------------------------
 echo  [ Step 1/4 ]  Version Number
 echo  ------------------------------------------------------------
-echo    Format: MAJOR.MINOR.PATCH   (e.g.  1.2.0  or  2.0.0)
+echo    Format: MAJOR.MINOR.PATCH  (e.g. 1.2.0 or 2.0.0)
 echo.
 
 :ask_version
@@ -51,12 +47,11 @@ if not defined VERSION (
     goto ask_version
 )
 
-:: Validate MAJOR.MINOR.PATCH with PowerShell (batch regex is unreliable)
-powershell -NoProfile -Command ^
-    "if ('%VERSION%' -notmatch '^\d+\.\d+\.\d+$') { exit 1 }" >nul 2>&1
+:: Validate format via PS - no $ needed, just -match on a literal string
+powershell -NoProfile -Command "if ('%VERSION%' -notmatch '^\d+\.\d+\.\d+$') { exit 1 }" >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo    Invalid format.  Expected MAJOR.MINOR.PATCH  e.g. 1.2.0
+    echo    Invalid format. Expected MAJOR.MINOR.PATCH  e.g. 1.2.0
     echo.
     goto ask_version
 )
@@ -64,9 +59,9 @@ if errorlevel 1 (
 echo.
 echo    Version set to: %VERSION%
 
-:: ─────────────────────────────────────────────────────────────────────────────
-::  Step 2 — Release notes
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
+::  Step 2 - Release notes
+:: ---------------------------------------------------------------------------
 echo.
 echo  [ Step 2/4 ]  Release Notes
 echo  ------------------------------------------------------------
@@ -90,12 +85,12 @@ goto notes_loop
 
 if "!HAS_NOTES!"=="0" (
     echo.
-    echo    No notes entered — Notepad will open for editing.
+    echo    No notes entered - Notepad will open for editing.
 )
 
-:: ─────────────────────────────────────────────────────────────────────────────
-::  Step 3 — Build options
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
+::  Step 3 - Build options
+:: ---------------------------------------------------------------------------
 echo.
 echo  [ Step 3/4 ]  Build Options
 echo  ------------------------------------------------------------
@@ -116,14 +111,14 @@ set "OPT_NOPUSH="
 set /p "ANS_PUSH=    Push commit and tag to remote? [Y/n]: "
 if /i "!ANS_PUSH!"=="n" (
     set "OPT_NOPUSH=-NoPush"
-    echo    Push skipped — you can push manually afterwards.
+    echo    Push skipped - you can push manually afterwards.
 ) else (
     echo    Commit and tag will be pushed.
 )
 
-:: ─────────────────────────────────────────────────────────────────────────────
-::  Step 4 — Confirm
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
+::  Step 4 - Confirm
+:: ---------------------------------------------------------------------------
 echo.
 echo  [ Step 4/4 ]  Confirm
 echo  ============================================================
@@ -132,7 +127,7 @@ echo    Version  :  %VERSION%  (was %CURRENT_VERSION%)
 
 if "!HAS_NOTES!"=="1" (
     echo    Notes    :
-    for /f "delims=" %%l in ("%TMPNOTES%") do echo      %%l
+    for /f "usebackq delims=" %%l in ("%TMPNOTES%") do echo      %%l
 ) else (
     echo    Notes    :  [Notepad will open]
 )
@@ -149,9 +144,9 @@ set /p "CONFIRM=    Proceed with release? [Y/n]: "
 if /i "!CONFIRM!"=="n" goto cancelled
 if /i "!CONFIRM!"=="no" goto cancelled
 
-:: ─────────────────────────────────────────────────────────────────────────────
-::  Launch PowerShell script
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
+::  Call PowerShell build script
+:: ---------------------------------------------------------------------------
 echo.
 echo  Starting build script...
 echo  ============================================================
@@ -169,19 +164,17 @@ if "!HAS_NOTES!"=="1" (
 )
 
 set "EXIT_CODE=%ERRORLEVEL%"
-
-:: Cleanup temp notes file
 if exist "%TMPNOTES%" del "%TMPNOTES%"
 
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 ::  Result
-:: ─────────────────────────────────────────────────────────────────────────────
+:: ---------------------------------------------------------------------------
 echo.
 echo  ============================================================
 if "!EXIT_CODE!"=="0" (
-    echo    SUCCESS — LogViewer v%VERSION% released.
+    echo    SUCCESS  -  LogViewer v%VERSION% released.
 ) else (
-    echo    FAILED — Exit code: !EXIT_CODE!
+    echo    FAILED  -  Exit code: !EXIT_CODE!
     echo    Check the output above for details.
 )
 echo  ============================================================
@@ -191,11 +184,12 @@ goto done
 :cancelled
 echo.
 echo  ============================================================
-echo    Cancelled — no changes made.
+echo    Cancelled - no changes made.
 echo  ============================================================
 echo.
 if exist "%TMPNOTES%" del "%TMPNOTES%"
 
 :done
+del "%TMPGETVER%" >nul 2>&1
 pause
 endlocal
