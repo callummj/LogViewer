@@ -3,7 +3,7 @@
   <PropertyGroup>
     <VersionMajor>0</VersionMajor>
     <VersionMinor>0</VersionMinor>
-    <VersionPatch>3</VersionPatch>
+    <VersionPatch>4</VersionPatch>
     <Version>$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
     <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).0</AssemblyVersion>
     <FileVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).0</FileVersion>
