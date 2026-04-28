@@ -3,19 +3,19 @@
     Builds LogViewer, stamps the version, and creates an annotated git tag.
 
 .PARAMETER Version
-    Version string in MAJOR.MINOR.PATCH format.  Required.
+    Version string in MAJOR.MINOR.PATCH format. Required.
 
 .PARAMETER Notes
-    Release notes as a string.  If omitted the script opens Notepad for you to write them.
+    Release notes as a string. If omitted the script opens Notepad for you to write them.
 
 .PARAMETER NotesFile
     Path to a plain-text file containing the release notes.
 
 .PARAMETER NoBuild
-    Skip dotnet build (useful when you just want to tag an already-built artifact).
+    Skip dotnet build.
 
 .PARAMETER NoPush
-    Do not push the commit or tag to the remote.  Tag is created locally only.
+    Do not push the commit or tag to the remote. Tag is created locally only.
 
 .EXAMPLE
     .\build.ps1 -Version 1.2.0
@@ -29,8 +29,8 @@ param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string] $Version,
 
-    [string] $Notes      = "",
-    [string] $NotesFile  = "",
+    [string] $Notes     = "",
+    [string] $NotesFile = "",
     [switch] $NoBuild,
     [switch] $NoPush
 )
@@ -38,30 +38,36 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-function Write-Step  { param([string]$Msg) Write-Host "`n==> $Msg" -ForegroundColor Cyan }
-function Write-Ok    { param([string]$Msg) Write-Host "    [OK] $Msg" -ForegroundColor Green }
-function Write-Warn  { param([string]$Msg) Write-Host "    [!!] $Msg" -ForegroundColor Yellow }
-function Write-Fail  { param([string]$Msg) Write-Host "    [FAIL] $Msg" -ForegroundColor Red }
+function Write-Step { param([string]$Msg) Write-Host "`n==> $Msg" -ForegroundColor Cyan }
+function Write-Ok   { param([string]$Msg) Write-Host "    [OK] $Msg" -ForegroundColor Green }
+function Write-Warn { param([string]$Msg) Write-Host "    [!!] $Msg" -ForegroundColor Yellow }
+function Write-Fail { param([string]$Msg) Write-Host "    [FAIL] $Msg" -ForegroundColor Red }
 
 function Invoke-Cmd {
-    param([string]$Cmd, [string[]]$Args)
-    & $Cmd @Args
+    param([string]$Exe, [string[]]$CmdArgs)
+    & $Exe @CmdArgs
     if ($LASTEXITCODE -ne 0) {
-        Write-Fail "'$Cmd $($Args -join ' ')' exited with code $LASTEXITCODE"
+        Write-Fail "'$Exe $($CmdArgs -join ' ')' exited with code $LASTEXITCODE"
         exit $LASTEXITCODE
     }
 }
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
 
-$RepoRoot     = Resolve-Path "$PSScriptRoot\.."
-$VersionProps = Join-Path $PSScriptRoot "version.props"
-$CsprojPath   = Join-Path $RepoRoot "LogViewerApp\LogViewerApp.csproj"
-$ChangelogPath= Join-Path $RepoRoot "CHANGELOG.md"
+$RepoRoot      = Resolve-Path "$PSScriptRoot\.."
+$VersionProps  = Join-Path $PSScriptRoot "version.props"
+$CsprojPath    = Join-Path $RepoRoot "LogViewerApp\LogViewerApp.csproj"
+$ChangelogPath = Join-Path $RepoRoot "CHANGELOG.md"
 
-# ── Parse version ─────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Parse version
+# ---------------------------------------------------------------------------
 
 $parts   = $Version.Split('.')
 $Major   = $parts[0]
@@ -71,14 +77,15 @@ $TagName = "v$Version"
 
 Write-Step "Preparing release $TagName"
 
-# Guard: tag must not already exist
 $existingTag = git -C $RepoRoot tag --list $TagName 2>$null
 if ($existingTag) {
-    Write-Fail "Git tag '$TagName' already exists.  Delete it first with: git tag -d $TagName"
+    Write-Fail "Git tag '$TagName' already exists. Delete it first with: git tag -d $TagName"
     exit 1
 }
 
-# ── Collect release notes ─────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Collect release notes
+# ---------------------------------------------------------------------------
 
 Write-Step "Collecting release notes"
 
@@ -88,15 +95,10 @@ if ($NotesFile -ne "" -and (Test-Path $NotesFile)) {
 }
 
 if ($Notes.Trim() -eq "") {
-    # Open Notepad — wait for user to save and close
     $tempFile = [System.IO.Path]::GetTempFileName()
-    $notesTemplate = @"
-# Release Notes — LogViewer $TagName
-# Lines starting with '#' are ignored.  Save and close Notepad when done.
-
-"@
-    Set-Content -Path $tempFile -Value $notesTemplate -Encoding UTF8
-    Write-Host "    Opening Notepad for release notes — save and close when done..." -ForegroundColor Yellow
+    $template = "# Release Notes -- LogViewer $TagName`r`n# Lines starting with '#' are ignored. Save and close Notepad when done.`r`n`r`n"
+    Set-Content -Path $tempFile -Value $template -Encoding UTF8
+    Write-Host "    Opening Notepad for release notes -- save and close when done..." -ForegroundColor Yellow
     Start-Process -FilePath "notepad.exe" -ArgumentList $tempFile -Wait
     $rawLines = Get-Content $tempFile -Encoding UTF8
     Remove-Item $tempFile -Force
@@ -105,15 +107,17 @@ if ($Notes.Trim() -eq "") {
 }
 
 if ($Notes.Trim() -eq "") {
-    Write-Warn "No release notes provided — tag will be created with a default message."
+    Write-Warn "No release notes provided -- using default message."
     $Notes = "Release $TagName"
 }
 
-Write-Ok "Release notes collected ($($Notes.Length) chars)"
+Write-Ok "Release notes ready ($($Notes.Length) chars)"
 
-# ── Update version.props ──────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Update version.props
+# ---------------------------------------------------------------------------
 
-Write-Step "Updating Build\version.props → $Version"
+Write-Step "Updating Build\version.props to $Version"
 
 [xml]$props = Get-Content $VersionProps
 $pg = $props.Project.PropertyGroup
@@ -121,10 +125,10 @@ $pg.VersionMajor = $Major
 $pg.VersionMinor = $Minor
 $pg.VersionPatch = $Patch
 
-$xmlSettings           = New-Object System.Xml.XmlWriterSettings
-$xmlSettings.Indent    = $true
-$xmlSettings.IndentChars = "  "
-$xmlSettings.Encoding  = [System.Text.Encoding]::UTF8
+$xmlSettings                    = New-Object System.Xml.XmlWriterSettings
+$xmlSettings.Indent             = $true
+$xmlSettings.IndentChars        = "  "
+$xmlSettings.Encoding           = [System.Text.Encoding]::UTF8
 $xmlSettings.OmitXmlDeclaration = $false
 
 $writer = [System.Xml.XmlWriter]::Create($VersionProps, $xmlSettings)
@@ -133,21 +137,17 @@ $writer.Close()
 
 Write-Ok "version.props updated"
 
-# ── Update CHANGELOG.md ───────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Update CHANGELOG.md
+# ---------------------------------------------------------------------------
 
 Write-Step "Updating CHANGELOG.md"
 
-$date         = Get-Date -Format "yyyy-MM-dd"
-$newEntry     = @"
-## [$Version] — $date
-
-$Notes
-
-"@
+$date     = Get-Date -Format "yyyy-MM-dd"
+$newEntry = "## [$Version] -- $date`n`n$Notes`n"
 
 if (Test-Path $ChangelogPath) {
     $existing = Get-Content $ChangelogPath -Raw
-    # Insert after the first heading line if present, otherwise prepend
     if ($existing -match '^# ') {
         $firstNewline = $existing.IndexOf("`n")
         $header       = $existing.Substring(0, $firstNewline + 1)
@@ -158,13 +158,15 @@ if (Test-Path $ChangelogPath) {
     }
     Set-Content -Path $ChangelogPath -Value $updated -Encoding UTF8 -NoNewline
 } else {
-    $header  = "# Changelog`n`nAll notable changes to LogViewer are documented here.`n"
+    $header = "# Changelog`n`nAll notable changes to LogViewer are documented here.`n"
     Set-Content -Path $ChangelogPath -Value "$header`n$newEntry" -Encoding UTF8
 }
 
 Write-Ok "CHANGELOG.md updated"
 
-# ── Build ─────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
 
 if (-not $NoBuild) {
     Write-Step "Building Release configuration"
@@ -174,7 +176,9 @@ if (-not $NoBuild) {
     Write-Warn "Build skipped (-NoBuild)"
 }
 
-# ── Git: commit version bump + tag ───────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Git: commit + tag
+# ---------------------------------------------------------------------------
 
 Write-Step "Creating git commit and tag"
 
@@ -184,28 +188,33 @@ $commitMsg = "chore: release $TagName"
 Invoke-Cmd git @("-C", $RepoRoot, "commit", "-m", $commitMsg)
 Write-Ok "Committed: $commitMsg"
 
-# Annotated tag — message contains the release notes
 $tagMsg = "LogViewer $TagName`n`n$Notes"
 Invoke-Cmd git @("-C", $RepoRoot, "tag", "-a", $TagName, "-m", $tagMsg)
 Write-Ok "Created annotated tag $TagName"
 
-# ── Push ──────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Push
+# ---------------------------------------------------------------------------
 
 if (-not $NoPush) {
     $remote = git -C $RepoRoot remote 2>$null | Select-Object -First 1
     if ($remote) {
-        Write-Step "Pushing commit and tag to '$remote'"
+        Write-Step "Pushing to '$remote'"
         Invoke-Cmd git @("-C", $RepoRoot, "push", $remote)
         Invoke-Cmd git @("-C", $RepoRoot, "push", $remote, $TagName)
         Write-Ok "Pushed $TagName to $remote"
     } else {
-        Write-Warn "No git remote configured — skipping push."
+        Write-Warn "No git remote configured -- skipping push."
     }
 } else {
-    Write-Warn "Push skipped (-NoPush).  Run when ready:`n    git push origin && git push origin $TagName"
+    Write-Warn "Push skipped (-NoPush). Run when ready:"
+    Write-Host "      git push origin" -ForegroundColor DarkGray
+    Write-Host "      git push origin $TagName" -ForegroundColor DarkGray
 }
 
-# ── Summary ───────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
 
 Write-Host ""
 Write-Host "  Released: LogViewer $TagName" -ForegroundColor Green
