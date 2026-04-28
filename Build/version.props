@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <VersionMajor>1</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+    <VersionPatch>0</VersionPatch>
+    <Version>$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
+    <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).0</AssemblyVersion>
+    <FileVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).0</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <Product>LogViewer</Product>
+    <Company>LogViewerApp</Company>
+    <Copyright>Copyright © 2024</Copyright>
+  </PropertyGroup>
+</Project>
