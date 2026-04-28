@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LogViewerApp.Collections;
 using LogViewerApp.Models;
 using LogViewerApp.Services;
 
@@ -16,7 +19,10 @@ public partial class LogTabViewModel : ObservableObject
     private readonly TimeSyncService _timeSync;
     private readonly SessionSyncService _sessionSync;
     private List<LogEntryViewModel> _allEntries = new();
-    private bool _suppressSessionBroadcast;
+
+    // Debounce + cancellation for filter
+    private CancellationTokenSource? _filterCts;
+    private CancellationTokenSource? _loadCts;
 
     [ObservableProperty] private string _title = "New Tab";
     [ObservableProperty] private string? _filePath;
@@ -32,9 +38,11 @@ public partial class LogTabViewModel : ObservableObject
     [ObservableProperty] private bool _isTimeSyncEnabled;
     [ObservableProperty] private bool _isSessionSyncEnabled;
     [ObservableProperty] private bool _isPinned;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private string _loadingText = "";
     [ObservableProperty] private string _statusText = "No file loaded";
 
-    public ObservableCollection<LogEntryViewModel> FilteredEntries { get; } = new();
+    public RangeObservableCollection<LogEntryViewModel> FilteredEntries { get; } = new();
     public ObservableCollection<LogSession> Sessions { get; } = new();
     public List<LogSession> AllSessions { get; private set; } = new();
 
@@ -50,16 +58,16 @@ public partial class LogTabViewModel : ObservableObject
         _sessionSync.Subscribe(this, OnSessionSynced);
     }
 
-    partial void OnFilterTextChanged(string value)   => ApplyFilter();
-    partial void OnFilterErrorChanged(bool value)    => ApplyFilter();
-    partial void OnFilterWarnChanged(bool value)     => ApplyFilter();
-    partial void OnFilterInfoChanged(bool value)     => ApplyFilter();
-    partial void OnFilterDebugChanged(bool value)    => ApplyFilter();
-    partial void OnFilterTraceChanged(bool value)    => ApplyFilter();
-
+    // Any filter-affecting change triggers debounced async filter
+    partial void OnFilterTextChanged(string _)           => ScheduleFilter(debounceMs: 180);
+    partial void OnFilterErrorChanged(bool _)            => ScheduleFilter();
+    partial void OnFilterWarnChanged(bool _)             => ScheduleFilter();
+    partial void OnFilterInfoChanged(bool _)             => ScheduleFilter();
+    partial void OnFilterDebugChanged(bool _)            => ScheduleFilter();
+    partial void OnFilterTraceChanged(bool _)            => ScheduleFilter();
     partial void OnSelectedSessionIndexChanged(int value)
     {
-        ApplyFilter();
+        ScheduleFilter();
         if (!_suppressSessionBroadcast && IsSessionSyncEnabled)
             _sessionSync.BroadcastSession(this, value);
     }
@@ -71,55 +79,119 @@ public partial class LogTabViewModel : ObservableObject
         ScrollToEntry?.Invoke(value);
     }
 
-    public void LoadFile(string path)
+    // ── Loading ───────────────────────────────────────────────────────────────
+
+    public async Task LoadFileAsync(string path)
     {
-        FilePath = path;
-        Title = System.IO.Path.GetFileName(path);
-        var entries = _parser.Parse(path);
-        var sessions = _parser.SplitIntoSessions(entries);
+        // Cancel any in-flight load
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var ct = _loadCts.Token;
 
-        AllSessions = sessions;
-        _allEntries = entries.Select(e => new LogEntryViewModel(e)).ToList();
-
+        FilePath  = path;
+        Title     = System.IO.Path.GetFileName(path);
+        IsLoading = true;
+        LoadingText = "Parsing log file…";
+        FilteredEntries.Reset(Array.Empty<LogEntryViewModel>());
         Sessions.Clear();
-        foreach (var s in sessions) Sessions.Add(s);
+        StatusText = "Loading…";
 
-        SelectedSessionIndex = -1;
-        ApplyFilter();
-        StatusText = $"{entries.Count:N0} entries, {sessions.Count} session(s)";
+        try
+        {
+            var entries  = await _parser.ParseAsync(path, ct);
+            ct.ThrowIfCancellationRequested();
+
+            LoadingText = "Splitting sessions…";
+            var sessions = await Task.Run(() => _parser.SplitIntoSessions(entries), ct);
+            ct.ThrowIfCancellationRequested();
+
+            AllSessions  = sessions;
+            _allEntries  = entries.Select(e => new LogEntryViewModel(e)).ToList();
+
+            foreach (var s in sessions) Sessions.Add(s);
+            SelectedSessionIndex = -1;
+
+            StatusText = $"{entries.Count:N0} entries, {sessions.Count} session(s)";
+        }
+        catch (OperationCanceledException) { return; }
+        finally { IsLoading = false; }
+
+        // Apply initial filter without debounce delay
+        await ApplyFilterAsync(CancellationToken.None);
     }
 
-    public void ApplyFilter()
+    // Kept for callers that need a synchronous path (e.g. unit tests or quick inline use)
+    public void LoadFile(string path) => _ = LoadFileAsync(path);
+
+    // ── Filtering ─────────────────────────────────────────────────────────────
+
+    private void ScheduleFilter(int debounceMs = 0)
     {
-        FilteredEntries.Clear();
-        var filter = FilterText.ToLowerInvariant();
+        _filterCts?.Cancel();
+        _filterCts = new CancellationTokenSource();
+        var token = _filterCts.Token;
+        _ = RunFilterAfterDelay(debounceMs, token);
+    }
 
-        foreach (var vm in _allEntries)
+    private async Task RunFilterAfterDelay(int delayMs, CancellationToken ct)
+    {
+        try
         {
-            if (SelectedSessionIndex >= 0 && vm.SessionIndex != SelectedSessionIndex) continue;
-            if (!LevelAllowed(vm.Entry.Level)) continue;
-            if (!string.IsNullOrEmpty(filter) &&
-                !vm.Message.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
-                !vm.Logger.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
-                !vm.Thread.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
-
-            FilteredEntries.Add(vm);
+            if (delayMs > 0) await Task.Delay(delayMs, ct);
+            ct.ThrowIfCancellationRequested();
+            await ApplyFilterAsync(ct);
         }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task ApplyFilterAsync(CancellationToken ct)
+    {
+        // Snapshot mutable state before going async
+        var entries    = _allEntries;
+        var filter     = FilterText.ToLowerInvariant();
+        var sessionIdx = SelectedSessionIndex;
+        bool fErr = FilterError, fWrn = FilterWarn, fInf = FilterInfo,
+             fDbg = FilterDebug, fTrc = FilterTrace;
+
+        var results = await Task.Run(() =>
+        {
+            var list = new List<LogEntryViewModel>(entries.Count);
+            foreach (var vm in entries)
+            {
+                if (ct.IsCancellationRequested) return null;
+                if (sessionIdx >= 0 && vm.SessionIndex != sessionIdx) continue;
+                if (!LevelAllowed(vm.Entry.Level, fErr, fWrn, fInf, fDbg, fTrc)) continue;
+                if (!string.IsNullOrEmpty(filter) &&
+                    !vm.Message.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
+                    !vm.Logger.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
+                    !vm.Thread.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
+                list.Add(vm);
+            }
+            return list;
+        }, ct);
+
+        if (ct.IsCancellationRequested || results == null) return;
+
+        // Single Reset fires one CollectionChanged — DataGrid re-renders once
+        FilteredEntries.Reset(results);
 
         StatusText = FilePath == null
             ? "No file loaded"
             : $"Showing {FilteredEntries.Count:N0} / {_allEntries.Count:N0} entries";
     }
 
-    private bool LevelAllowed(LogLevel level) => level switch
-    {
-        LogLevel.Error or LogLevel.Fatal => FilterError,
-        LogLevel.Warn  => FilterWarn,
-        LogLevel.Info  => FilterInfo,
-        LogLevel.Debug => FilterDebug,
-        LogLevel.Trace => FilterTrace,
-        _              => FilterInfo
-    };
+    private static bool LevelAllowed(LogLevel level, bool err, bool wrn, bool inf, bool dbg, bool trc)
+        => level switch
+        {
+            LogLevel.Error or LogLevel.Fatal => err,
+            LogLevel.Warn  => wrn,
+            LogLevel.Info  => inf,
+            LogLevel.Debug => dbg,
+            LogLevel.Trace => trc,
+            _              => inf
+        };
+
+    // ── Sync callbacks ────────────────────────────────────────────────────────
 
     private void OnTimeSynced(DateTime time)
     {
@@ -130,17 +202,20 @@ public partial class LogTabViewModel : ObservableObject
         if (closest != null) SelectedEntry = closest;
     }
 
+    private bool _suppressSessionBroadcast;
+
     private void OnSessionSynced(int sessionIndex)
     {
         if (!IsSessionSyncEnabled) return;
         _suppressSessionBroadcast = true;
-        // Clamp to a valid index for this file's session count
         SelectedSessionIndex = sessionIndex < Sessions.Count ? sessionIndex : -1;
         _suppressSessionBroadcast = false;
     }
 
     public void Dispose()
     {
+        _loadCts?.Cancel();
+        _filterCts?.Cancel();
         _timeSync.Unsubscribe(OnTimeSynced);
         _sessionSync.Unsubscribe(this);
     }

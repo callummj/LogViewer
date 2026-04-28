@@ -61,7 +61,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenFile()
+    private async Task OpenFileAsync()
     {
         var dlg = new OpenFileDialog
         {
@@ -70,13 +70,13 @@ public partial class MainViewModel : ObservableObject
         };
         if (dlg.ShowDialog() != true) return;
         var tab = CreateTab();
-        tab.LoadFile(dlg.FileName);
         Tabs.Add(tab);
         ActiveTab = tab;
+        await tab.LoadFileAsync(dlg.FileName);
     }
 
     [RelayCommand]
-    private void OpenFileInNewTab()
+    private async Task OpenFileInNewTabAsync()
     {
         var dlg = new OpenFileDialog
         {
@@ -88,9 +88,9 @@ public partial class MainViewModel : ObservableObject
         foreach (var file in dlg.FileNames)
         {
             var tab = CreateTab();
-            tab.LoadFile(file);
             Tabs.Add(tab);
             ActiveTab = tab;
+            await tab.LoadFileAsync(file);
         }
     }
 
@@ -240,7 +240,7 @@ public partial class MainViewModel : ObservableObject
         _persistence.Save(session);
     }
 
-    public void RestoreSession()
+    public async Task RestoreSessionAsync()
     {
         var session = _persistence.Load();
         if (session == null) return;
@@ -253,7 +253,15 @@ public partial class MainViewModel : ObservableObject
             if (!File.Exists(p.FilePath)) continue;
 
             var tab = CreateTab();
-            tab.LoadFile(p.FilePath);
+            tab.IsPinned             = p.IsPinned;
+            tab.IsTimeSyncEnabled    = p.IsTimeSyncEnabled;
+            tab.IsSessionSyncEnabled = p.IsSessionSyncEnabled;
+            Tabs.Add(tab);
+            ActiveTab = tab;
+
+            await tab.LoadFileAsync(p.FilePath);
+
+            // Restore filter state after load (LoadFileAsync resets them)
             tab.FilterText           = p.FilterText;
             tab.FilterError          = p.FilterError;
             tab.FilterWarn           = p.FilterWarn;
@@ -262,10 +270,6 @@ public partial class MainViewModel : ObservableObject
             tab.FilterTrace          = p.FilterTrace;
             tab.SelectedSessionIndex = p.SelectedSessionIndex;
             tab.HighlightText        = p.HighlightText;
-            tab.IsTimeSyncEnabled    = p.IsTimeSyncEnabled;
-            tab.IsSessionSyncEnabled = p.IsSessionSyncEnabled;
-            tab.IsPinned             = p.IsPinned;
-            Tabs.Add(tab);
         }
 
         if (Tabs.Count > 0)

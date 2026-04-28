@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using LogViewerApp.Models;
 
 namespace LogViewerApp.Services;
@@ -21,7 +23,10 @@ public class LogParser
     private static readonly string[] SessionSplitMarkers =
         ["Application started", "Starting up", "Startup", "Initializing", "Bootstrap"];
 
-    public List<LogEntry> Parse(string filePath)
+    public Task<List<LogEntry>> ParseAsync(string filePath, CancellationToken ct = default)
+        => Task.Run(() => Parse(filePath, ct), ct);
+
+    public List<LogEntry> Parse(string filePath, CancellationToken ct = default)
     {
         var entries = new List<LogEntry>();
         var lines = File.ReadAllLines(filePath);
@@ -30,6 +35,7 @@ public class LogParser
 
         foreach (var line in lines)
         {
+            ct.ThrowIfCancellationRequested();
             lineNum++;
             var entry = TryParseLine(line, lineNum);
             if (entry != null)
