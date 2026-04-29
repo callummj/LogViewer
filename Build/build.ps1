@@ -29,11 +29,12 @@ param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string] $Version,
 
-    [string] $Notes       = "",
-    [string] $NotesFile   = "",
+    [string] $Notes           = "",
+    [string] $NotesFile       = "",
     [switch] $NoBuild,
     [switch] $NoInstaller,
-    [switch] $NoPush
+    [switch] $NoPush,
+    [switch] $NoGitHubRelease
 )
 
 Set-StrictMode -Version Latest
@@ -68,6 +69,7 @@ $CsprojPath    = Join-Path $RepoRoot "LogViewerApp\LogViewerApp.csproj"
 $ChangelogPath = Join-Path $RepoRoot "CHANGELOG.md"
 $PublishDir    = Join-Path $RepoRoot "Publish"
 $ReleaseDir    = Join-Path $RepoRoot "Release"
+$InstallerExe  = Join-Path $ReleaseDir "LogViewer-Setup-$Version.exe"
 
 # ---------------------------------------------------------------------------
 # Parse version
@@ -258,6 +260,41 @@ if (-not $NoPush) {
     Write-Warn "Push skipped (-NoPush). Run when ready:"
     Write-Host "      git push origin" -ForegroundColor DarkGray
     Write-Host "      git push origin $TagName" -ForegroundColor DarkGray
+}
+
+# ---------------------------------------------------------------------------
+# GitHub Release
+# ---------------------------------------------------------------------------
+
+if (-not $NoGitHubRelease) {
+    Write-Step "Creating GitHub release"
+
+    $GhCmd = Get-Command "gh" -ErrorAction SilentlyContinue
+    if (-not $GhCmd) {
+        Write-Warn "GitHub CLI (gh) not found -- GitHub release skipped."
+        Write-Host "      Install from https://cli.github.com" -ForegroundColor DarkGray
+    } elseif ($NoPush) {
+        Write-Warn "GitHub release skipped -- push was skipped. Run manually once pushed:"
+        Write-Host "      gh release create $TagName --title ""LogViewer $TagName"" --notes-file <notes> ""$InstallerExe""" -ForegroundColor DarkGray
+    } elseif (-not (Test-Path $InstallerExe)) {
+        Write-Warn "Installer not found at '$InstallerExe' -- GitHub release skipped."
+    } else {
+        $TempNotes = [System.IO.Path]::GetTempFileName()
+        Set-Content -Path $TempNotes -Value $Notes -Encoding UTF8
+        try {
+            Invoke-Cmd gh @(
+                "release", "create", $TagName,
+                "--title", "LogViewer $TagName",
+                "--notes-file", $TempNotes,
+                $InstallerExe
+            )
+            Write-Ok "GitHub release created with installer asset"
+        } finally {
+            Remove-Item $TempNotes -Force -ErrorAction SilentlyContinue
+        }
+    }
+} else {
+    Write-Warn "GitHub release skipped (-NoGitHubRelease)"
 }
 
 # ---------------------------------------------------------------------------

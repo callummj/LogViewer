@@ -10,6 +10,6 @@
     <InformationalVersion>$(Version)</InformationalVersion>
     <Product>LogViewer</Product>
     <Company>LogViewerApp</Company>
-    <Copyright>Copyright Â© 2024</Copyright>
+    <Copyright>Copyright © 2024 Callum Jones</Copyright>
   </PropertyGroup>
 </Project>

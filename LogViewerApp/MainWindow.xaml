@@ -52,6 +52,9 @@
                 <MenuItem Header="Load log4net Config…"     Command="{Binding LoadLog4NetConfigCommand}"/>
                 <MenuItem Header="Generate Default Config…" Command="{Binding GenerateLog4NetConfigCommand}"/>
             </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="About LogViewer" Click="ShowAbout_Click"/>
+            </MenuItem>
         </Menu>
 
         <!-- Toolbar -->

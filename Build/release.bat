@@ -127,6 +127,22 @@ if /i "!ANS_PUSH!"=="n" (
     echo    Commit and tag will be pushed.
 )
 
+echo.
+
+set "OPT_NOGITHUBRELEASE="
+if defined OPT_NOPUSH (
+    set "OPT_NOGITHUBRELEASE=-NoGitHubRelease"
+    echo    GitHub release skipped ^(push is disabled^).
+) else (
+    set /p "ANS_GHRELEASE=    Create GitHub release with installer asset? [Y/n]: "
+    if /i "!ANS_GHRELEASE!"=="n" (
+        set "OPT_NOGITHUBRELEASE=-NoGitHubRelease"
+        echo    GitHub release skipped.
+    ) else (
+        echo    GitHub release will be created ^(requires gh CLI^).
+    )
+)
+
 :: ---------------------------------------------------------------------------
 ::  Step 4 - Confirm
 :: ---------------------------------------------------------------------------
@@ -143,9 +159,10 @@ if "!HAS_NOTES!"=="1" (
     echo    Notes    :  [Notepad will open]
 )
 
-if defined OPT_NOBUILD      (echo    Build     :  SKIPPED) else (echo    Build     :  Release ^(publish win-x64^))
-if defined OPT_NOINSTALLER  (echo    Installer :  SKIPPED) else (echo    Installer :  Yes ^(Inno Setup^))
-if defined OPT_NOPUSH       (echo    Push      :  SKIPPED) else (echo    Push      :  Yes)
+if defined OPT_NOBUILD         (echo    Build          :  SKIPPED) else (echo    Build          :  Release ^(publish win-x64^))
+if defined OPT_NOINSTALLER     (echo    Installer      :  SKIPPED) else (echo    Installer      :  Yes ^(Inno Setup^))
+if defined OPT_NOPUSH          (echo    Push           :  SKIPPED) else (echo    Push           :  Yes)
+if defined OPT_NOGITHUBRELEASE (echo    GitHub release :  SKIPPED) else (echo    GitHub release :  Yes ^(gh CLI^))
 
 echo.
 echo  ============================================================
@@ -168,11 +185,11 @@ if "!HAS_NOTES!"=="1" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" ^
         -Version "%VERSION%" ^
         -NotesFile "%TMPNOTES%" ^
-        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH!
+        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH! !OPT_NOGITHUBRELEASE!
 ) else (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" ^
         -Version "%VERSION%" ^
-        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH!
+        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH! !OPT_NOGITHUBRELEASE!
 )
 
 set "EXIT_CODE=%ERRORLEVEL%"

@@ -1,5 +1,6 @@
 using System.Windows;
 using LogViewerApp.ViewModels;
+using LogViewerApp.Views;
 
 namespace LogViewerApp;
 
@@ -13,4 +14,7 @@ public partial class MainWindow : Window
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
+
+    private void ShowAbout_Click(object sender, RoutedEventArgs e)
+        => new AboutWindow { Owner = this }.ShowDialog();
 }
