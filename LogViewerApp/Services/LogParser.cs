@@ -20,6 +20,12 @@ public class LogParser
         @"^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}[,\.]\d{3})\s+(\w+)\s+\[([^\]]*)\]\s+([^\s]+)\s+-\s+(.*)$",
         RegexOptions.Compiled);
 
+    // Fallback: any line that starts with a timestamp is a new entry, even if
+    // the rest doesn't match a known format (e.g. missing thread/logger).
+    private static readonly Regex TimestampPrefix = new(
+        @"^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}[,\.]\d{3})",
+        RegexOptions.Compiled);
+
     private static readonly string[] SessionSplitMarkers =
         ["Application started", "Starting up", "Startup", "Initializing", "Bootstrap"];
 
@@ -40,18 +46,32 @@ public class LogParser
             var entry = TryParseLine(line, lineNum);
             if (entry != null)
             {
-                if (current != null) entries.Add(current);
+                if (current != null)
+                {
+                    FinalizeEntry(current);
+                    entries.Add(current);
+                }
                 current = entry;
             }
-            else if (current != null)
+            else if (current != null && !string.IsNullOrWhiteSpace(line))
             {
-                // Continuation line (e.g. stack trace)
+                // Continuation line (e.g. stack trace or multi-line message body)
                 current.Exception = (current.Exception ?? "") + line + "\n";
             }
         }
 
-        if (current != null) entries.Add(current);
+        if (current != null)
+        {
+            FinalizeEntry(current);
+            entries.Add(current);
+        }
         return entries;
+    }
+
+    private static void FinalizeEntry(LogEntry entry)
+    {
+        if (entry.Exception != null)
+            entry.Exception = entry.Exception.TrimEnd('\n', '\r', ' ');
     }
 
     private static LogEntry? TryParseLine(string line, int lineNum)
@@ -82,6 +102,22 @@ public class LogParser
                 Thread     = m.Groups[3].Value,
                 Logger     = m.Groups[4].Value,
                 Message    = m.Groups[5].Value,
+                RawLine    = line
+            };
+        }
+
+        // Fallback: if the line starts with a timestamp, always treat it as a new entry.
+        // This handles non-standard formats where thread/logger/level are missing or
+        // formatted differently — prevents them from being swallowed as continuation content.
+        var ts = TimestampPrefix.Match(line);
+        if (ts.Success)
+        {
+            return new LogEntry
+            {
+                LineNumber = lineNum,
+                Timestamp  = ParseTimestamp(ts.Groups[1].Value),
+                Level      = LogLevel.Unknown,
+                Message    = line[ts.Length..].TrimStart(),
                 RawLine    = line
             };
         }
