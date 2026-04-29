@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## [0.0.11] -- 2026-04-29
+
+Installer now included in release
+
+
 ## [0.0.10] -- 2026-04-29
 
 Installer now included as an asset of release
