@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## [0.0.12] -- 2026-04-29
+
+Improves parsing, adds icon and text highlighting
+
+
 ## [0.0.11] -- 2026-04-29
 
 Installer now included in release
