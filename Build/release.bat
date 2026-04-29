@@ -107,6 +107,17 @@ if /i "!ANS_BUILD!"=="n" (
 
 echo.
 
+set "OPT_NOINSTALLER="
+set /p "ANS_INSTALLER=    Build installer? [Y/n]: "
+if /i "!ANS_INSTALLER!"=="n" (
+    set "OPT_NOINSTALLER=-NoInstaller"
+    echo    Installer skipped.
+) else (
+    echo    Installer will be built ^(requires Inno Setup 6^).
+)
+
+echo.
+
 set "OPT_NOPUSH="
 set /p "ANS_PUSH=    Push commit and tag to remote? [Y/n]: "
 if /i "!ANS_PUSH!"=="n" (
@@ -132,8 +143,9 @@ if "!HAS_NOTES!"=="1" (
     echo    Notes    :  [Notepad will open]
 )
 
-if defined OPT_NOBUILD (echo    Build    :  SKIPPED) else (echo    Build    :  Release)
-if defined OPT_NOPUSH  (echo    Push     :  SKIPPED) else (echo    Push     :  Yes)
+if defined OPT_NOBUILD      (echo    Build     :  SKIPPED) else (echo    Build     :  Release ^(publish win-x64^))
+if defined OPT_NOINSTALLER  (echo    Installer :  SKIPPED) else (echo    Installer :  Yes ^(Inno Setup^))
+if defined OPT_NOPUSH       (echo    Push      :  SKIPPED) else (echo    Push      :  Yes)
 
 echo.
 echo  ============================================================
@@ -156,11 +168,11 @@ if "!HAS_NOTES!"=="1" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" ^
         -Version "%VERSION%" ^
         -NotesFile "%TMPNOTES%" ^
-        !OPT_NOBUILD! !OPT_NOPUSH!
+        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH!
 ) else (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" ^
         -Version "%VERSION%" ^
-        !OPT_NOBUILD! !OPT_NOPUSH!
+        !OPT_NOBUILD! !OPT_NOINSTALLER! !OPT_NOPUSH!
 )
 
 set "EXIT_CODE=%ERRORLEVEL%"

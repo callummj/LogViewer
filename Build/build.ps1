@@ -29,9 +29,10 @@ param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string] $Version,
 
-    [string] $Notes     = "",
-    [string] $NotesFile = "",
+    [string] $Notes       = "",
+    [string] $NotesFile   = "",
     [switch] $NoBuild,
+    [switch] $NoInstaller,
     [switch] $NoPush
 )
 
@@ -62,8 +63,11 @@ function Invoke-Cmd {
 
 $RepoRoot      = Resolve-Path "$PSScriptRoot\.."
 $VersionProps  = Join-Path $PSScriptRoot "version.props"
+$InstallerIss  = Join-Path $PSScriptRoot "installer.iss"
 $CsprojPath    = Join-Path $RepoRoot "LogViewerApp\LogViewerApp.csproj"
 $ChangelogPath = Join-Path $RepoRoot "CHANGELOG.md"
+$PublishDir    = Join-Path $RepoRoot "Publish"
+$ReleaseDir    = Join-Path $RepoRoot "Release"
 
 # ---------------------------------------------------------------------------
 # Parse version
@@ -169,11 +173,55 @@ Write-Ok "CHANGELOG.md updated"
 # ---------------------------------------------------------------------------
 
 if (-not $NoBuild) {
-    Write-Step "Building Release configuration"
-    Invoke-Cmd dotnet @("build", $CsprojPath, "-c", "Release", "--nologo", "-v", "minimal")
-    Write-Ok "Build succeeded"
+    Write-Step "Publishing Release configuration (win-x64, framework-dependent)"
+
+    # Clean previous publish output so no stale files are packaged
+    if (Test-Path $PublishDir) {
+        Remove-Item $PublishDir -Recurse -Force
+    }
+
+    Invoke-Cmd dotnet @(
+        "publish", $CsprojPath,
+        "-c", "Release",
+        "-r", "win-x64",
+        "--self-contained", "false",
+        "-o", $PublishDir,
+        "--nologo", "-v", "minimal"
+    )
+    Write-Ok "Publish succeeded -> $PublishDir"
 } else {
     Write-Warn "Build skipped (-NoBuild)"
+}
+
+# ---------------------------------------------------------------------------
+# Installer
+# ---------------------------------------------------------------------------
+
+if (-not $NoBuild -and -not $NoInstaller) {
+    Write-Step "Building installer (Inno Setup)"
+
+    $IsccPath = @(
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if (-not $IsccPath) {
+        $cmd = Get-Command "iscc.exe" -ErrorAction SilentlyContinue
+        if ($cmd) { $IsccPath = $cmd.Source }
+    }
+
+    if (-not $IsccPath) {
+        Write-Warn "ISCC.exe not found -- installer skipped."
+        Write-Host "      Install Inno Setup 6 from https://jrsoftware.org/issetup.php" -ForegroundColor DarkGray
+    } else {
+        New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
+        Invoke-Cmd $IsccPath @("/DMyAppVersion=$Version", $InstallerIss)
+        Write-Ok "Installer -> $ReleaseDir\LogViewer-Setup-$Version.exe"
+    }
+} elseif ($NoInstaller) {
+    Write-Warn "Installer skipped (-NoInstaller)"
+} elseif ($NoBuild) {
+    Write-Warn "Installer skipped (no publish output -- remove -NoBuild or run separately)"
 }
 
 # ---------------------------------------------------------------------------
