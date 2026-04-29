@@ -41,6 +41,11 @@ public partial class LogTabViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _loadingText = "";
     [ObservableProperty] private string _statusText = "No file loaded";
+    [ObservableProperty] private bool _isTextView = false;
+    [ObservableProperty] private string _rawText = "";
+
+    public bool IsGridView => !IsTextView;
+    partial void OnIsTextViewChanged(bool _) => OnPropertyChanged(nameof(IsGridView));
 
     public RangeObservableCollection<LogEntryViewModel> FilteredEntries { get; } = new();
     public ObservableCollection<LogSession> Sessions { get; } = new();
@@ -94,11 +99,14 @@ public partial class LogTabViewModel : ObservableObject
         LoadingText = "Parsing log file…";
         FilteredEntries.Reset(Array.Empty<LogEntryViewModel>());
         Sessions.Clear();
+        RawText    = "";
         StatusText = "Loading…";
 
         try
         {
-            var entries  = await _parser.ParseAsync(path, ct);
+            // Read raw text concurrently with parsing — file is hot in OS cache after parse
+            var rawTextTask = System.IO.File.ReadAllTextAsync(path, ct);
+            var entries     = await _parser.ParseAsync(path, ct);
             ct.ThrowIfCancellationRequested();
 
             LoadingText = "Splitting sessions…";
@@ -107,6 +115,7 @@ public partial class LogTabViewModel : ObservableObject
 
             AllSessions  = sessions;
             _allEntries  = entries.Select(e => new LogEntryViewModel(e)).ToList();
+            RawText      = await rawTextTask;
 
             foreach (var s in sessions) Sessions.Add(s);
             SelectedSessionIndex = -1;

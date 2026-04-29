@@ -96,11 +96,42 @@
                           Foreground="#007050" FontFamily="Consolas" FontSize="12"
                           VerticalAlignment="Center"
                           ToolTip="Sync active session across tabs"/>
+
+                <Separator Width="1" Height="16" Background="#CCC" Margin="8,0,10,0" VerticalAlignment="Center"/>
+
+                <ToggleButton IsChecked="{Binding IsTextView}"
+                              FontFamily="Consolas" FontSize="12"
+                              VerticalAlignment="Center" Padding="8,2"
+                              ToolTip="Switch between structured grid view and raw text view">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Content" Value="Text View"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Content" Value="Grid View"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
             </WrapPanel>
         </Border>
 
+        <!-- Raw text view (Notepad-style) -->
+        <TextBox Grid.Row="1"
+                 Text="{Binding RawText, Mode=OneWay}"
+                 IsReadOnly="True"
+                 FontFamily="Consolas" FontSize="12"
+                 HorizontalScrollBarVisibility="Auto"
+                 VerticalScrollBarVisibility="Auto"
+                 TextWrapping="NoWrap"
+                 Background="White" Foreground="#1A1A1A"
+                 BorderThickness="0" Padding="8,6"
+                 Visibility="{Binding IsTextView, Converter={StaticResource BoolToVis}}"/>
+
         <!-- Main split: log list + detail -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1"
+              Visibility="{Binding IsGridView, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
