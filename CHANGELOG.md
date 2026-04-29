@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## [0.0.6] -- 2026-04-29
+
+Creating installer
+
+
 ## [0.0.5] -- 2026-04-29
 
 Creating installer
