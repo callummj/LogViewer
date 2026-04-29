@@ -1,13 +1,37 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Windows.Media;
 using LogViewerApp.Models;
 
 namespace LogViewerApp.ViewModels;
 
-public class LogEntryViewModel
+public partial class LogEntryViewModel : ObservableObject
 {
     public LogEntry Entry { get; }
 
     public LogEntryViewModel(LogEntry entry) => Entry = entry;
+
+    // ── Highlight state ───────────────────────────────────────────────────────
+
+    [ObservableProperty] private bool _isHighlighted;
+    [ObservableProperty] private Color _highlightColor = Color.FromRgb(255, 241, 118); // default yellow
+
+    partial void OnHighlightColorChanged(Color _) => OnPropertyChanged(nameof(HighlightBrush));
+
+    // Brush consumed by the DataTrigger in the row style
+    public Brush HighlightBrush => new SolidColorBrush(HighlightColor);
+
+    [RelayCommand]
+    private void SetHighlight(string hex)
+    {
+        HighlightColor = (Color)ColorConverter.ConvertFromString(hex);
+        IsHighlighted  = true;
+    }
+
+    [RelayCommand]
+    private void ClearHighlight() => IsHighlighted = false;
+
+    // ── Display properties ────────────────────────────────────────────────────
 
     public string Timestamp => Entry.Timestamp != System.DateTime.MinValue
         ? Entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff") : "";
@@ -43,11 +67,13 @@ public class LogEntryViewModel
         _              => new SolidColorBrush(Colors.Black)
     };
 
+    // Highlight is handled by a DataTrigger in the row style (higher WPF priority
+    // than a Style Setter, so it survives DataGrid selection changes).
     public Brush RowBackground => Entry.Level switch
     {
         LogLevel.Fatal => new SolidColorBrush(Color.FromArgb(40, 192, 57, 43)),
         LogLevel.Error => new SolidColorBrush(Color.FromArgb(20, 192, 57, 43)),
         LogLevel.Warn  => new SolidColorBrush(Color.FromArgb(35, 184, 134, 11)),
-        _              => Brushes.Transparent
+        _              => Brushes.White
     };
 }

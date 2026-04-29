@@ -208,8 +208,6 @@
                       HeadersVisibility="Column"
                       Background="White"
                       Foreground="#1A1A1A"
-                      RowBackground="White"
-                      AlternatingRowBackground="#FAFAFA"
                       BorderThickness="0"
                       SelectionMode="Single"
                       RowHeight="19"
@@ -235,7 +233,72 @@
                     <Style TargetType="DataGridRow">
                         <Setter Property="Background" Value="{Binding RowBackground}"/>
                         <Setter Property="Foreground" Value="#1A1A1A"/>
+                        <Setter Property="ContextMenu">
+                            <Setter.Value>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext,
+                                                              RelativeSource={RelativeSource Self}}">
+                                    <!-- Colour submenu — commands live on LogEntryViewModel -->
+                                    <MenuItem Header="Highlight">
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#FFF176">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#FFF176" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Yellow" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#B9F6CA">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#B9F6CA" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Green" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#FFCCBC">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#FFCCBC" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Orange" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#BBDEFB">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#BBDEFB" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Blue" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#E1BEE7">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#E1BEE7" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Purple" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding SetHighlightCommand}" CommandParameter="#F8BBD9">
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="12" Height="12" Background="#F8BBD9" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Pink" FontFamily="Consolas" FontSize="12"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                    </MenuItem>
+                                    <Separator Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVis}}"/>
+                                    <MenuItem Header="Remove Highlight"
+                                              Command="{Binding ClearHighlightCommand}"
+                                              Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVis}}"/>
+                                </ContextMenu>
+                            </Setter.Value>
+                        </Setter>
                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                                <Setter Property="Background" Value="{Binding HighlightBrush}"/>
+                            </DataTrigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="#0060A0"/>
                                 <Setter Property="Foreground" Value="White"/>
