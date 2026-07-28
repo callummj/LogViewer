@@ -4,6 +4,10 @@
              xmlns:ctrl="clr-namespace:LogViewerApp.Controls"
              xmlns:conv="clr-namespace:LogViewerApp.Converters">
 
+    <UserControl.InputBindings>
+        <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding OpenFindCommand}"/>
+    </UserControl.InputBindings>
+
     <UserControl.Resources>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
@@ -186,6 +190,42 @@
                  BorderThickness="0" Padding="8,6"
                  Visibility="{Binding IsTextView, Converter={StaticResource BoolToVis}}"/>
 
+        <!-- Ctrl+F find bar — floats over the content area, top-right -->
+        <Border Grid.Row="1" Panel.ZIndex="5"
+                x:Name="FindBar"
+                HorizontalAlignment="Right" VerticalAlignment="Top"
+                Margin="0,0,0,0"
+                Visibility="{Binding IsFindOpen, Converter={StaticResource BoolToVis}}"
+                Background="#F3F3F3" BorderBrush="#C0C0C0" BorderThickness="0,0,0,1"
+                Padding="6,4">
+            <Border.Effect>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="6" Opacity="0.2"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <TextBox x:Name="FindBox"
+                         Width="200"
+                         Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="Consolas" FontSize="12"
+                         BorderBrush="#BBBBBB" Padding="3,2"
+                         VerticalContentAlignment="Center"
+                         KeyDown="FindBox_KeyDown"/>
+                <TextBlock Text="{Binding FindStatusText}"
+                           FontFamily="Consolas" FontSize="11"
+                           Foreground="#666666" VerticalAlignment="Center"
+                           Margin="7,0,5,0" MinWidth="55"
+                           TextAlignment="Center"/>
+                <Button Content="▲" Command="{Binding FindPreviousCommand}"
+                        Padding="5,2" Margin="0,0,2,0"
+                        ToolTip="Previous match (Shift+Enter)"/>
+                <Button Content="▼" Command="{Binding FindNextCommand}"
+                        Padding="5,2" Margin="0,0,6,0"
+                        ToolTip="Next match (Enter)"/>
+                <Button Content="✕" Command="{Binding CloseFindCommand}"
+                        Padding="5,2"
+                        ToolTip="Close (Esc)"/>
+            </StackPanel>
+        </Border>
+
         <!-- Main split: log list + detail -->
         <Grid Grid.Row="1"
               Visibility="{Binding IsGridView, Converter={StaticResource BoolToVis}}">
@@ -292,6 +332,9 @@
                                     <MenuItem Header="Remove Highlight"
                                               Command="{Binding ClearHighlightCommand}"
                                               Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVis}}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Sync to Timestamp"
+                                              Command="{Binding SyncToTimestampCommand}"/>
                                 </ContextMenu>
                             </Setter.Value>
                         </Setter>

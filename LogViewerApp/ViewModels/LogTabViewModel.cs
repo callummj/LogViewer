@@ -19,6 +19,7 @@ public partial class LogTabViewModel : ObservableObject
     private readonly TimeSyncService _timeSync;
     private readonly SessionSyncService _sessionSync;
     private List<LogEntryViewModel> _allEntries = new();
+    private List<LogEntryViewModel> _findResults = new();
 
     // Debounce + cancellation for filter
     private CancellationTokenSource? _filterCts;
@@ -43,9 +44,25 @@ public partial class LogTabViewModel : ObservableObject
     [ObservableProperty] private string _statusText = "No file loaded";
     [ObservableProperty] private bool _isTextView = false;
     [ObservableProperty] private string _rawText = "";
+    [ObservableProperty] private bool _isFindOpen;
+    [ObservableProperty] private string _findText = "";
+    [ObservableProperty] private int _findIndex = -1;
+    [ObservableProperty] private int _findCount = 0;
 
     public bool IsGridView => !IsTextView;
     partial void OnIsTextViewChanged(bool _) => OnPropertyChanged(nameof(IsGridView));
+
+    public string FindStatusText => _findCount == 0
+        ? (string.IsNullOrEmpty(_findText) ? "" : "No results")
+        : $"{_findIndex + 1} / {_findCount}";
+
+    partial void OnFindIndexChanged(int _) => OnPropertyChanged(nameof(FindStatusText));
+    partial void OnFindCountChanged(int _) => OnPropertyChanged(nameof(FindStatusText));
+    partial void OnFindTextChanged(string _) => UpdateFind();
+    partial void OnIsFindOpenChanged(bool value)
+    {
+        if (!value) { FindText = ""; _findResults.Clear(); FindCount = 0; FindIndex = -1; }
+    }
 
     public RangeObservableCollection<LogEntryViewModel> FilteredEntries { get; } = new();
     public ObservableCollection<LogSession> Sessions { get; } = new();
@@ -60,6 +77,7 @@ public partial class LogTabViewModel : ObservableObject
         _timeSync = timeSync;
         _sessionSync = sessionSync;
         _timeSync.Subscribe(OnTimeSynced);
+        _timeSync.SubscribeExplicit(OnExplicitTimeSync);
         _sessionSync.Subscribe(this, OnSessionSynced);
     }
 
@@ -114,7 +132,7 @@ public partial class LogTabViewModel : ObservableObject
             ct.ThrowIfCancellationRequested();
 
             AllSessions  = sessions;
-            _allEntries  = entries.Select(e => new LogEntryViewModel(e)).ToList();
+            _allEntries  = entries.Select(e => new LogEntryViewModel(e, OnSyncToTimestampRequested)).ToList();
             RawText      = await rawTextTask;
 
             foreach (var s in sessions) Sessions.Add(s);
@@ -187,6 +205,9 @@ public partial class LogTabViewModel : ObservableObject
         StatusText = FilePath == null
             ? "No file loaded"
             : $"Showing {FilteredEntries.Count:N0} / {_allEntries.Count:N0} entries";
+
+        if (IsFindOpen && !string.IsNullOrEmpty(FindText))
+            UpdateFind();
     }
 
     private static bool LevelAllowed(LogLevel level, bool err, bool wrn, bool inf, bool dbg, bool trc)
@@ -221,11 +242,82 @@ public partial class LogTabViewModel : ObservableObject
         _suppressSessionBroadcast = false;
     }
 
+    // ── Explicit timestamp sync (right-click context menu) ────────────────────
+
+    private void OnSyncToTimestampRequested(LogEntryViewModel entry)
+        => _timeSync.BroadcastTimeExplicit(this, entry.Entry.Timestamp);
+
+    private void OnExplicitTimeSync(object source, DateTime time)
+    {
+        if (source == this) return;
+        var toleranceTicks = (long)(TimeSpan.TicksPerSecond * _timeSync.ToleranceSeconds);
+        var match = FilteredEntries
+            .Where(e => e.Entry.Timestamp != DateTime.MinValue &&
+                        Math.Abs((e.Entry.Timestamp - time).Ticks) <= toleranceTicks)
+            .OrderBy(e => Math.Abs((e.Entry.Timestamp - time).Ticks))
+            .FirstOrDefault();
+
+        if (match != null)
+            SelectedEntry = match;
+        else
+            StatusText = FilePath == null
+                ? "No file loaded"
+                : $"No entries within ±{_timeSync.ToleranceSeconds:N1}s of {time:HH:mm:ss.fff}";
+    }
+
+    // ── Find (Ctrl+F) ─────────────────────────────────────────────────────────
+
+    [RelayCommand] private void OpenFind() => IsFindOpen = true;
+    [RelayCommand] private void CloseFind() => IsFindOpen = false;
+
+    [RelayCommand]
+    private void FindNext()
+    {
+        if (_findResults.Count == 0) { UpdateFind(); return; }
+        FindIndex = (FindIndex + 1) % _findResults.Count;
+        NavigateToCurrentFind();
+    }
+
+    [RelayCommand]
+    private void FindPrevious()
+    {
+        if (_findResults.Count == 0) { UpdateFind(); return; }
+        FindIndex = (FindIndex - 1 + _findResults.Count) % _findResults.Count;
+        NavigateToCurrentFind();
+    }
+
+    private void UpdateFind()
+    {
+        var text = FindText;
+        if (string.IsNullOrEmpty(text))
+        {
+            _findResults.Clear();
+            FindCount = 0;
+            FindIndex = -1;
+            return;
+        }
+        _findResults = FilteredEntries
+            .Where(e => e.Message.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                        e.Logger.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                        e.Thread.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        FindCount = _findResults.Count;
+        FindIndex = _findResults.Count > 0 ? 0 : -1;
+        NavigateToCurrentFind();
+    }
+
+    private void NavigateToCurrentFind()
+    {
+        if (FindIndex >= 0 && FindIndex < _findResults.Count)
+            SelectedEntry = _findResults[FindIndex];
+    }
+
     public void Dispose()
     {
         _loadCts?.Cancel();
         _filterCts?.Cancel();
         _timeSync.Unsubscribe(OnTimeSynced);
+        _timeSync.UnsubscribeExplicit(OnExplicitTimeSync);
         _sessionSync.Unsubscribe(this);
     }
 }

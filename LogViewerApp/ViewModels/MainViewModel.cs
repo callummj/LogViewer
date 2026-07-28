@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private LogTabViewModel? _activeTab;
     [ObservableProperty] private bool _isTimeSyncGlobal;
     [ObservableProperty] private bool _isSessionSyncGlobal;
+    [ObservableProperty] private double _timeSyncToleranceSeconds = 1.0;
     [ObservableProperty] private string _log4NetStatus = "No config loaded";
     [ObservableProperty] private string _log4NetConfigPath = "";
 
@@ -50,6 +51,9 @@ public partial class MainViewModel : ObservableObject
         _sessionSync.IsSyncing = value;
         foreach (var tab in Tabs) tab.IsSessionSyncEnabled = value;
     }
+
+    partial void OnTimeSyncToleranceSecondsChanged(double value)
+        => _timeSync.ToleranceSeconds = Math.Max(0.0, value);
 
     // ── Tab commands ──────────────────────────────────────────────────────────
 

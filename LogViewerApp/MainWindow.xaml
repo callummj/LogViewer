@@ -75,9 +75,19 @@
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="0,0,12,0"/>
 
                     <CheckBox Content="Time Sync" IsChecked="{Binding IsTimeSyncGlobal}"
-                              Foreground="#0060A0" VerticalAlignment="Center" Margin="0,0,8,0"
+                              Foreground="#0060A0" VerticalAlignment="Center" Margin="0,0,4,0"
                               FontFamily="Consolas" FontSize="12"
                               ToolTip="Synchronize cursor position by timestamp across all tabs"/>
+                    <TextBlock Text="±" Foreground="#555" VerticalAlignment="Center"
+                               FontFamily="Consolas" FontSize="12" Margin="4,0,2,0"
+                               ToolTip="Timestamp sync tolerance in seconds (applies to both auto-sync and Sync to Timestamp)"/>
+                    <TextBox Width="38"
+                             Text="{Binding TimeSyncToleranceSeconds, UpdateSourceTrigger=LostFocus, StringFormat=N1}"
+                             FontFamily="Consolas" FontSize="12"
+                             BorderBrush="#BBB" Padding="3,1" VerticalContentAlignment="Center"
+                             ToolTip="Timestamp sync tolerance in seconds"/>
+                    <TextBlock Text="s" Foreground="#555" VerticalAlignment="Center"
+                               FontFamily="Consolas" FontSize="12" Margin="2,0,8,0"/>
                     <CheckBox Content="Session Sync" IsChecked="{Binding IsSessionSyncGlobal}"
                               Foreground="#007050" VerticalAlignment="Center" Margin="0,0,12,0"
                               FontFamily="Consolas" FontSize="12"

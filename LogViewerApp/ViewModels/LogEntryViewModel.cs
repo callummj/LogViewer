@@ -1,3 +1,5 @@
+using System;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Media;
@@ -9,7 +11,15 @@ public partial class LogEntryViewModel : ObservableObject
 {
     public LogEntry Entry { get; }
 
-    public LogEntryViewModel(LogEntry entry) => Entry = entry;
+    public ICommand SyncToTimestampCommand { get; }
+
+    public LogEntryViewModel(LogEntry entry, Action<LogEntryViewModel>? syncCallback = null)
+    {
+        Entry = entry;
+        SyncToTimestampCommand = new RelayCommand(
+            () => syncCallback?.Invoke(this),
+            () => syncCallback != null && entry.Timestamp != DateTime.MinValue);
+    }
 
     // ── Highlight state ───────────────────────────────────────────────────────
 
