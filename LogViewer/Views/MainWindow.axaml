@@ -8,7 +8,8 @@
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="LogViewer"
-        WindowState="Maximized">
+        WindowState="Maximized"
+        Background="WhiteSmoke">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -34,7 +35,7 @@
             <MenuItem Header="_Help"/>
         </Menu>
       
-        <Grid RowDefinitions="*, Auto">
+        <Grid RowDefinitions="*, Auto" PointerWheelChanged="OnPointerWheelChanged">
 
             <!-- 1. THE VIEWPORT -->
             <ScrollViewer Grid.Row="0" 
@@ -42,12 +43,12 @@
                           VerticalScrollBarVisibility="Auto"
                           ClipToBounds="True">
         
-                <!-- The content you want to zoom (Image, Panel, Border, etc.) -->
+                <!-- The item you want to zoom -->
                 <Border Background="LightGray" 
                         Width="300" 
                         Height="200" 
                         CornerRadius="8"
-                        RenderTransformOrigin="50%,50%"> <!-- Zooms from the center -->
+                        RenderTransformOrigin="50%,50%">
             
                     <TextBlock Text="Zoom Me!" 
                                VerticalAlignment="Center" 
@@ -55,7 +56,6 @@
                                FontSize="24" 
                                FontWeight="Bold"/>
 
-                    <!-- Apply the scaling transformation -->
                     <Border.RenderTransform>
                         <ScaleTransform ScaleX="{Binding #ZoomBar.Value}" 
                                         ScaleY="{Binding #ZoomBar.Value}"/>
@@ -67,7 +67,7 @@
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
                 <TextBlock Text="Zoom: " VerticalAlignment="Center"/>
         
-                <!-- Avalonia ScrollBar -->
+                <!-- Keep the scrollbar: it will now automatically update when the wheel moves -->
                 <ScrollBar x:Name="ZoomBar" 
                            Orientation="Horizontal" 
                            Width="200" 
@@ -76,7 +76,6 @@
                            Value="1.0" 
                            Height="20"/>
         
-                <!-- Displays the current zoom percentage dynamically -->
                 <TextBlock Text="{Binding #ZoomBar.Value, StringFormat={}{0:P0}}" 
                            VerticalAlignment="Center" 
                            Margin="10,0,0,0" 
