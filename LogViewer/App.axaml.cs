@@ -30,11 +30,12 @@ public class App : Application
             .WriteTo.File(LogLocation, 
                 rollingInterval: RollingInterval.Day) // Save to daily files
             .CreateLogger();
+        
+        m_log.Information(LogStartTag);
     }
     
     public override void Initialize()
     {
-        m_log.Information(LogStartTag);
         AvaloniaXamlLoader.Load(this);
     }
 
