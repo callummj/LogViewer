@@ -1,0 +1,11 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:viewModels="clr-namespace:LogViewer.ViewModels"
+                    xmlns:views="clr-namespace:LogViewer.Views">
+    <!-- Add Resources Here -->
+    
+    <DataTemplate x:Key="LogTemplate" DataType="viewModels:LogViewModel">
+        <views:LogView/>
+    </DataTemplate>
+    
+</ResourceDictionary>

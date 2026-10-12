@@ -15,18 +15,43 @@ public class MainViewModel : ViewModelBase, IMainViewModel
     private readonly ILogger m_log;
 
     private readonly IFileSelectionService m_fileSelectionService;
+    private readonly IDependencyInjectionContainer m_factory;
     
     private readonly AsyncRelayCommand m_openLogFileCommand;
     
-    public MainViewModel(ILogger log, IFileSelectionService fileSelectionService)
+    public MainViewModel(ILogger log, IDependencyInjectionContainer factory, IFileSelectionService fileSelectionService)
     {
         m_log = log;
+        m_factory = factory;
         m_fileSelectionService = fileSelectionService;
-        
         m_openLogFileCommand = new AsyncRelayCommand(ExecuteOpenLogFileCommand, CanExecuteOpenLogFileCommand);
     }
-    
 
+    public override async Task InitializeAsync(CancellationToken cancel)
+    {
+        LogViewModel = await m_factory.ResolveViewModelAsync<ILogViewModel>(cancel);
+
+
+        CurrentViewModel = LogViewModel;
+        await base.InitializeAsync(cancel);
+    }
+
+    #region Public Properties
+
+    public IViewModel CurrentViewModel
+    {
+        get => field;
+        set => SetProperty(ref field, value);
+    }
+    
+    public ILogViewModel LogViewModel
+    {
+        get => field;
+        set => SetProperty(ref field, value);
+    }
+    
+    #endregion
+    
     #region MenuCommands
 
     public ICommand OpenLogFilesCommand => m_openLogFileCommand;
@@ -48,6 +73,7 @@ public class MainViewModel : ViewModelBase, IMainViewModel
         foreach (var file in files)
         {
             m_log.Debug("{0} selected: {1}", Identifier, file);
+            _ = LogViewModel.MonitorLog(file.Path.AbsolutePath, cancel);
         }
     }
 

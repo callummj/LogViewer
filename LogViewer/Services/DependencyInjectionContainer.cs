@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using LogViewer.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LogViewer.Services;
 
-public class DependencyInjectionContainer
+public class DependencyInjectionContainer : IDependencyInjectionContainer
 {
     private IServiceProvider m_serviceProvider;
     private readonly IServiceCollection m_serviceCollection;
@@ -46,8 +47,10 @@ public class DependencyInjectionContainer
         }
     }
 
-    public T ResolveViewModel<T>()
+    public async Task<TViewModel> ResolveViewModelAsync<TViewModel>(CancellationToken cancel) where TViewModel : IViewModel
     {
-        return m_serviceProvider.GetRequiredService<T>();
+        var vm = m_serviceProvider.GetRequiredService<TViewModel>();
+        await vm.InitializeAsync(cancel);
+        return vm;
     }
 }

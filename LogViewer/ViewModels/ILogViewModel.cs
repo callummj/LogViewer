@@ -5,7 +5,5 @@ namespace LogViewer.ViewModels;
 
 public interface ILogViewModel : IViewModel
 {
-    public Task ReadFileAsync(string fileName, CancellationToken cancel);
-    
-    public Task LiveReadFileAsync(string fileName, CancellationToken cancel);
+    Task MonitorLog(string logFileName, CancellationToken cancel);
 }

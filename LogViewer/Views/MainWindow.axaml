@@ -45,17 +45,12 @@
         
                 <!-- The item you want to zoom -->
                 <Border Background="LightGray" 
-                        Width="300" 
-                        Height="200" 
+                       
                         CornerRadius="8"
                         RenderTransformOrigin="50%,50%">
-            
-                    <TextBlock Text="Zoom Me!" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Center" 
-                               FontSize="24" 
-                               FontWeight="Bold"/>
-
+                    
+                    <ContentPresenter DataContext="{Binding CurrentViewModel}"/>
+                    
                     <Border.RenderTransform>
                         <ScaleTransform ScaleX="{Binding #ZoomBar.Value}" 
                                         ScaleY="{Binding #ZoomBar.Value}"/>

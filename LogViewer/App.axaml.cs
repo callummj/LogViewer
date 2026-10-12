@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -45,7 +46,7 @@ public class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = m_container.ResolveViewModel<IMainViewModel>(),
+                DataContext = m_container.ResolveViewModelAsync<IMainViewModel>(new CancellationToken()).Result,
             };
         }
 
@@ -58,13 +59,17 @@ public class App : Application
         
         // Singletons
         m_container.RegisterSingleton<ILogger>(m_log);
+        m_container.RegisterSingleton<IDependencyInjectionContainer>(m_container);
         
         // ViewModels
         m_container.RegisterViewModel<IMainViewModel, MainViewModel>();
-        
+        m_container.RegisterViewModel<ILogViewModel, LogViewModel>();
+
         // Services
         m_container.RegisterService<IFileSelectionService, FileSelectionService>();
-        
+        m_container.RegisterService<ILogReaderService, LogReaderService>();
+        m_container.RegisterService<IIoService, IoService>();
+
         base.RegisterServices();
     }
 }
