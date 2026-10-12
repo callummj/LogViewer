@@ -56,7 +56,15 @@ public class App : Application
     {
         m_log.Debug("{0}RegisterServices()", Identifier);
         
+        // Singletons
+        m_container.RegisterSingleton<ILogger>(m_log);
+        
+        // ViewModels
         m_container.RegisterViewModel<IMainViewModel, MainViewModel>();
+        
+        // Services
+        m_container.RegisterService<IFileSelectionService, FileSelectionService>();
+        
         base.RegisterServices();
     }
 }

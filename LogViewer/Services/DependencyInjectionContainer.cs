@@ -27,6 +27,15 @@ public class DependencyInjectionContainer
         }
     }
 
+    public void RegisterSingleton<T>(T instance) where T : class
+    {
+        lock (m_lock)
+        {
+            m_serviceCollection.AddSingleton<T>(instance);
+            m_serviceProvider = m_serviceCollection.BuildServiceProvider();
+        }
+    }
+    
     public void RegisterViewModel<TViewModel, TImplementation>()
         where TViewModel : class where TImplementation : class, TViewModel, IViewModel
     {
