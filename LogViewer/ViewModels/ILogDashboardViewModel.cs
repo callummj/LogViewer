@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace LogViewer.ViewModels;
 
-public interface ILogViewModel : IViewModel
+public interface ILogDashboardViewModel : IViewModel
 {
     Task MonitorLog(string logFileName, CancellationToken cancel);
 }

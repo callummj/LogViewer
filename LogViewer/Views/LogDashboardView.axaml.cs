@@ -2,9 +2,9 @@
 
 namespace LogViewer.Views;
 
-public partial class LogView : UserControl
+public partial class LogDashboardView : UserControl
 {
-    public LogView()
+    public LogDashboardView()
     {
         InitializeComponent();
     }

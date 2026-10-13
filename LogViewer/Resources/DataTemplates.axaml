@@ -3,8 +3,8 @@
                     xmlns:viewModels="clr-namespace:LogViewer.ViewModels"
                     xmlns:views="clr-namespace:LogViewer.Views">
     
-    <DataTemplate x:Key="LogViewModelTemplate" DataType="viewModels:LogViewModel">
-        <views:LogView x:DataType="viewModels:LogViewModel" />
+    <DataTemplate x:Key="LogViewModelTemplate" DataType="viewModels:LogDashboardDashboardViewModel">
+        <views:LogDashboardView x:DataType="viewModels:LogDashboardDashboardViewModel" />
     </DataTemplate>
     
 </ResourceDictionary>

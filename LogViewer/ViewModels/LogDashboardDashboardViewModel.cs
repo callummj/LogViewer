@@ -6,14 +6,14 @@ using Serilog;
 
 namespace LogViewer.ViewModels;
 
-public class LogViewModel : ViewModelBase, ILogViewModel
+public class LogDashboardDashboardViewModel : ViewModelBase, ILogDashboardViewModel
 {
-    private const string Identifier = "LogViewModel::";
+    private const string Identifier = "LogDashboardDashboardViewModel::";
     private readonly ILogger m_log;
     
     private readonly ILogReaderService m_logReaderService;
     
-    public LogViewModel(ILogger log, ILogReaderService logReaderService)
+    public LogDashboardDashboardViewModel(ILogger log, ILogReaderService logReaderService)
     {
         m_log = log;
         m_logReaderService = logReaderService;

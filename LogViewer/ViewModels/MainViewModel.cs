@@ -29,10 +29,10 @@ public class MainViewModel : ViewModelBase, IMainViewModel
 
     public override async Task InitializeAsync(CancellationToken cancel)
     {
-        LogViewModel = await m_factory.ResolveViewModelAsync<ILogViewModel>(cancel);
+        LogDashboardViewModel = await m_factory.ResolveViewModelAsync<ILogDashboardViewModel>(cancel);
 
 
-        CurrentViewModel = LogViewModel;
+        CurrentViewModel = LogDashboardViewModel;
         await base.InitializeAsync(cancel);
     }
 
@@ -44,7 +44,7 @@ public class MainViewModel : ViewModelBase, IMainViewModel
         set => SetProperty(ref field, value);
     }
     
-    public ILogViewModel LogViewModel
+    public ILogDashboardViewModel LogDashboardViewModel
     {
         get => field;
         set => SetProperty(ref field, value);
@@ -73,7 +73,7 @@ public class MainViewModel : ViewModelBase, IMainViewModel
         foreach (var file in files)
         {
             m_log.Debug("{0} selected: {1}", Identifier, file);
-            _ = LogViewModel.MonitorLog(file.Path.AbsolutePath, cancel);
+            _ = LogDashboardViewModel.MonitorLog(file.Path.AbsolutePath, cancel);
         }
     }
 

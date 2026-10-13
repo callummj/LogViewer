@@ -74,7 +74,7 @@ public class App : Application
         
         // ViewModels
         m_container.RegisterViewModel<IMainViewModel, MainViewModel>();
-        m_container.RegisterViewModel<ILogViewModel, LogViewModel>();
+        m_container.RegisterViewModel<ILogDashboardViewModel, LogDashboardDashboardViewModel>();
 
         // Services
         m_container.RegisterService<IFileSelectionService, FileSelectionService>();
