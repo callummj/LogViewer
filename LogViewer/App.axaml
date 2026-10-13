@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="LogViewer.App"
              xmlns:local="using:LogViewer"
+             xmlns:themes="clr-namespace:Material.Styles.Themes;assembly=Material.Styles"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
              
@@ -19,13 +20,20 @@
              <Application.DataTemplates>
                  <!-- Pull the template explicitly into the runtime template pool -->
                  <StaticResource ResourceKey="LogViewModelTemplate"/>
-        
+                 <StaticResource ResourceKey="LogViewDashboardModelTemplate"/>
+
                  <!-- Keep your custom reflection ViewLocator as a generic fallback -->
                  <local:ViewLocator/>
              </Application.DataTemplates>
 
+             
             <Application.Styles>
-                <FluentTheme />
+                
+                <FluentTheme/>
+                
+                <!--
+                <themes:MaterialTheme BaseTheme="Inherit" PrimaryColor="Grey" SecondaryColor="Blue" />
+                -->
             </Application.Styles>
       
 </Application>

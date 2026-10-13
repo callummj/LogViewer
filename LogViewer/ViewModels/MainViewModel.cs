@@ -73,7 +73,7 @@ public class MainViewModel : ViewModelBase, IMainViewModel
         foreach (var file in files)
         {
             m_log.Debug("{0} selected: {1}", Identifier, file);
-            _ = LogDashboardViewModel.MonitorLog(file.Path.AbsolutePath, cancel);
+            _ = LogDashboardViewModel.OpenLogAsync(file.Path, cancel);
         }
     }
 

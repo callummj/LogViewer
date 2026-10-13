@@ -13,10 +13,44 @@
         <viewModels:LogDashboardDashboardViewModel/>
     </Design.DataContext>
     
-    <DockPanel LastChildFill="True">
-        
-        <ListBox ItemsSource="{Binding Logs}" />
-       
-    </DockPanel>
     
+    <DockPanel LastChildFill="True" DockPanel.Dock="Top">
+
+        <TextBlock Text="LogDashboard" DockPanel.Dock="Top" Margin="10" FontWeight="Bold"/>
+        
+        <!-- The Dynamic TabControl fills the entire canvas panel space -->
+        <TabControl ItemsSource="{Binding Logs}">
+            
+            <!-- 1. THE TAB HEADER BUTTONS -->
+            <TabControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type viewModels:ILogViewModel}">
+                    <!-- Vertically group elements using an implicit StackPanel inside the header -->
+                    <StackPanel Orientation="Horizontal" IsHitTestVisible="True">
+                        <TextBlock Text="{Binding FileName, FallbackValue='Active Log File'}" 
+                                   VerticalAlignment="Center">
+                            <ToolTip>
+                                <TextBlock Text="{Binding FileLocation.AbsolutePath}"/>
+                            </ToolTip>
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                    <!-- Use an actual MenuItem instead of a raw Button for standard UX behaviors -->
+                                    <MenuItem Header="Close File" />
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            
+            <!-- 2. THE TAB VIEWPORT CONTENT FIX -->
+            <TabControl.ContentTemplate>
+                <!-- CRITICAL: Do NOT define a DataType attribute here! -->
+                <!-- Leaving this empty forces Avalonia to evaluate each tab item as an independent instance -->
+                <DataTemplate>
+                    <ContentControl Content="{Binding}" />
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+            
+        </TabControl>
+    </DockPanel>
 </UserControl>

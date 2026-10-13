@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using LogViewer.Services;
@@ -11,26 +12,29 @@ public class LogDashboardDashboardViewModel : ViewModelBase, ILogDashboardViewMo
     private const string Identifier = "LogDashboardDashboardViewModel::";
     private readonly ILogger m_log;
     
-    private readonly ILogReaderService m_logReaderService;
+    private readonly IDependencyInjectionContainer m_factory;
     
-    public LogDashboardDashboardViewModel(ILogger log, ILogReaderService logReaderService)
+    public LogDashboardDashboardViewModel(ILogger log, IDependencyInjectionContainer factory)
     {
         m_log = log;
-        m_logReaderService = logReaderService;
+        m_factory = factory;
     }
     
+    public async Task OpenLogAsync(Uri logLocation, CancellationToken cancel)
+    {
+        m_log.Debug("{0}OpenLog() Opening log: {1}", Identifier, logLocation);
+        
+        var vm = await m_factory.ResolveViewModelAsync<ILogViewModel>(cancel);
+        
+        DispatchService.Do(() =>
+        {
+            Logs.Add(vm);
+            OnPropertyChanged(nameof(Logs));
+        });
+        
+        await vm.OpenLogAsync(logLocation, cancel);
+    }
+
+    public ObservableCollection<ILogViewModel> Logs { get; } = new();
     
-    public Task MonitorLog(string logFileName, CancellationToken cancel)
-    {
-        m_log.Debug("{0}MonitorLog() Monitoring log: {1}", Identifier, logFileName);
-        return m_logReaderService.LiveReadFileAsync(logFileName, OnLogCallbackAsync, cancel);
-    }
-
-    private Task OnLogCallbackAsync(string line, CancellationToken cancel)
-    {
-        DispatchService.Do(() => Logs.Add(line + "\n"));
-        return Task.CompletedTask;
-    }
-
-    public ObservableCollection<string> Logs { get; } = new();
 }

@@ -7,13 +7,6 @@ public static class DispatchService
 {
     public static void Do(Action action)
     {
-        if (Application.Current != null)
-        {
-            Application.Current.Dispatcher.Invoke(action);
-        }
-        else
-        {
-            action();
-        }
+        Avalonia.Threading.Dispatcher.UIThread.Post(action);
     }
 }

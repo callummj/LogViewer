@@ -44,9 +44,7 @@
                           ClipToBounds="True">
         
                 <!-- The item you want to zoom -->
-                <Border Background="LightGray" 
-                       
-                        CornerRadius="8"
+                <Border CornerRadius="8"
                         RenderTransformOrigin="50%,50%">
                     
                     <ContentControl Content="{Binding CurrentViewModel}"/>
