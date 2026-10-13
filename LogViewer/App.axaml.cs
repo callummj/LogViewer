@@ -42,13 +42,24 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        try
         {
-            desktop.MainWindow = new MainWindow
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                DataContext = m_container.ResolveViewModelAsync<IMainViewModel>(new CancellationToken()).Result,
-            };
+                var mainViewModel
+                    = m_container.ResolveViewModelAsync<IMainViewModel>(CancellationToken.None).Result;
+                desktop.MainWindow = new MainWindow
+                {
+                    DataContext = mainViewModel,
+                };
+            }
         }
+        catch (Exception ex)
+        {
+            m_log.Error("{0}OnFrameworkInitializationCompleted() Exception: {1}", Identifier, ex);
+            throw;
+        }
+        
 
         base.OnFrameworkInitializationCompleted();
     }

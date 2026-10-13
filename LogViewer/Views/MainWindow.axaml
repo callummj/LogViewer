@@ -49,7 +49,7 @@
                         CornerRadius="8"
                         RenderTransformOrigin="50%,50%">
                     
-                    <ContentPresenter DataContext="{Binding CurrentViewModel}"/>
+                    <ContentControl Content="{Binding CurrentViewModel}"/>
                     
                     <Border.RenderTransform>
                         <ScaleTransform ScaleX="{Binding #ZoomBar.Value}" 

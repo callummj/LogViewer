@@ -4,21 +4,28 @@
              xmlns:local="using:LogViewer"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
-  
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
              
-     <Application.Resources>
-         <ResourceDictionary>
-             <ResourceDictionary.MergedDictionaries>
-                 <!-- Include your external dictionary files here -->
-                 <ResourceInclude Source="avares://LogViewer/Resources/DataTemplates.axaml"/>
-             </ResourceDictionary.MergedDictionaries>
-         </ResourceDictionary>
-     </Application.Resources>
+        
+                       
+             <Application.Resources>
+                 <ResourceDictionary>
+                     <ResourceDictionary.MergedDictionaries>
+                         <!-- Merging the external file works flawlessly here -->
+                         <ResourceInclude Source="avares://LogViewer/Resources/DataTemplates.axaml"/>
+                     </ResourceDictionary.MergedDictionaries>
+                 </ResourceDictionary>
+             </Application.Resources>
+
+             <Application.DataTemplates>
+                 <!-- Pull the template explicitly into the runtime template pool -->
+                 <StaticResource ResourceKey="LogViewModelTemplate"/>
+        
+                 <!-- Keep your custom reflection ViewLocator as a generic fallback -->
+                 <local:ViewLocator/>
+             </Application.DataTemplates>
+
+            <Application.Styles>
+                <FluentTheme />
+            </Application.Styles>
+      
 </Application>

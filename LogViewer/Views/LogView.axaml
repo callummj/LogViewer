@@ -14,22 +14,9 @@
     </Design.DataContext>
     
     <DockPanel LastChildFill="True">
-        <TextBlock Text="Log"/>
         
-        <ListBox ItemsSource="{Binding  Logs}"/>
-
-        <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding Logs}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Classes="Card">
-                            <TextBlock Text="{Binding}" />
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-        
+        <ListBox ItemsSource="{Binding Logs}" />
+       
     </DockPanel>
     
 </UserControl>
