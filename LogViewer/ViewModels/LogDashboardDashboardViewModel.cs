@@ -29,7 +29,7 @@ public class LogDashboardDashboardViewModel : ViewModelBase, ILogDashboardViewMo
         DispatchService.Do(() =>
         {
             Logs.Add(vm);
-            OnPropertyChanged(nameof(Logs));
+            OnPropertyChanged(nameof(IsAnyLogsOpen));
         });
         
         await vm.OpenLogAsync(logLocation, cancel);
@@ -37,5 +37,5 @@ public class LogDashboardDashboardViewModel : ViewModelBase, ILogDashboardViewMo
 
     public ObservableCollection<ILogViewModel> Logs { get; } = new();
     
-    public ILogViewModel? SelectedLog { get; set; }
+    public bool IsAnyLogsOpen => Logs.Count > 0;
 }

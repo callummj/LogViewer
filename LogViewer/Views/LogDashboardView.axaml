@@ -15,25 +15,42 @@
     </Design.DataContext>
     
     
+    <DockPanel LastChildFill="True">
     
-    
-    <DockPanel LastChildFill="True" DockPanel.Dock="Top">
-
-        <TextBlock Text="LogDashboard" DockPanel.Dock="Top" Margin="10" FontWeight="Bold"/>
+        <Grid>
+            
+            <Border IsVisible="{Binding IsAnyLogsOpen, Converter={x:Static BoolConverters.Not}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            
+                <TextBlock 
+                    TextAlignment="Center" 
+                    Text="No Logs open, Click File > Open to select logs to open" 
+                />
+            </Border>
+       
+            <!-- The main TabControl -->
+            <TabControl ItemsSource="{Binding Logs}" IsVisible="{Binding IsAnyLogsOpen}">
+                <TabControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </TabControl.ItemsPanel>
+            
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FileName}" />
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+            
+                <TabControl.ContentTemplate>
+                    <DataTemplate DataType="viewModels:LogViewModel">
+                        <views:LogView />
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
         
-        
-        <TabControl ItemsSource="{Binding Logs}"
-                    SelectedItem="{Binding SelectedLog}">
-            <TabControl.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding FileName}" />
-                </DataTemplate>
-            </TabControl.ItemTemplate>
-            <TabControl.ContentTemplate>
-                <DataTemplate DataType="viewModels:LogViewModel">
-                    <views:LogView />
-                </DataTemplate>
-            </TabControl.ContentTemplate>
-        </TabControl>
+        </Grid>
     </DockPanel>
+    
 </UserControl>
