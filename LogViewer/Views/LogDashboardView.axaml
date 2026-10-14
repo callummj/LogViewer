@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:LogViewer.ViewModels"
+             xmlns:views="clr-namespace:LogViewer.Views"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="LogViewer.Views.LogDashboardView"
              x:DataType="viewModels:LogDashboardDashboardViewModel">
@@ -14,43 +15,25 @@
     </Design.DataContext>
     
     
+    
+    
     <DockPanel LastChildFill="True" DockPanel.Dock="Top">
 
         <TextBlock Text="LogDashboard" DockPanel.Dock="Top" Margin="10" FontWeight="Bold"/>
         
-        <!-- The Dynamic TabControl fills the entire canvas panel space -->
-        <TabControl ItemsSource="{Binding Logs}">
-            
-            <!-- 1. THE TAB HEADER BUTTONS -->
+        
+        <TabControl ItemsSource="{Binding Logs}"
+                    SelectedItem="{Binding SelectedLog}">
             <TabControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type viewModels:ILogViewModel}">
-                    <!-- Vertically group elements using an implicit StackPanel inside the header -->
-                    <StackPanel Orientation="Horizontal" IsHitTestVisible="True">
-                        <TextBlock Text="{Binding FileName, FallbackValue='Active Log File'}" 
-                                   VerticalAlignment="Center">
-                            <ToolTip>
-                                <TextBlock Text="{Binding FileLocation.AbsolutePath}"/>
-                            </ToolTip>
-                            <TextBlock.ContextMenu>
-                                <ContextMenu>
-                                    <!-- Use an actual MenuItem instead of a raw Button for standard UX behaviors -->
-                                    <MenuItem Header="Close File" />
-                                </ContextMenu>
-                            </TextBlock.ContextMenu>
-                        </TextBlock>
-                    </StackPanel>
+                <DataTemplate>
+                    <TextBlock Text="{Binding FileName}" />
                 </DataTemplate>
             </TabControl.ItemTemplate>
-            
-            <!-- 2. THE TAB VIEWPORT CONTENT FIX -->
             <TabControl.ContentTemplate>
-                <!-- CRITICAL: Do NOT define a DataType attribute here! -->
-                <!-- Leaving this empty forces Avalonia to evaluate each tab item as an independent instance -->
-                <DataTemplate>
-                    <ContentControl Content="{Binding}" />
+                <DataTemplate DataType="viewModels:LogViewModel">
+                    <views:LogView />
                 </DataTemplate>
             </TabControl.ContentTemplate>
-            
         </TabControl>
     </DockPanel>
 </UserControl>

@@ -37,4 +37,5 @@ public class LogDashboardDashboardViewModel : ViewModelBase, ILogDashboardViewMo
 
     public ObservableCollection<ILogViewModel> Logs { get; } = new();
     
+    public ILogViewModel? SelectedLog { get; set; }
 }

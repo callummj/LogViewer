@@ -42,7 +42,7 @@ public class DependencyInjectionContainer : IDependencyInjectionContainer
     {
         lock (m_lock)
         {
-            m_serviceCollection.AddScoped<TViewModel, TImplementation>();
+            m_serviceCollection.AddTransient<TViewModel, TImplementation>();
             m_serviceProvider = m_serviceCollection.BuildServiceProvider();
         }
     }
