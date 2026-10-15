@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:LogViewer.ViewModels"
              xmlns:views="clr-namespace:LogViewer.Views"
+             xmlns:iconPacks="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="LogViewer.Views.LogDashboardView"
              x:DataType="viewModels:LogDashboardDashboardViewModel">
@@ -38,8 +39,35 @@
                 </TabControl.ItemsPanel>
             
                 <TabControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding FileName}" />
+                    <!-- Explicitly set the data type for the tab item header here -->
+                    <DataTemplate x:DataType="viewModels:LogViewModel">
+                        <DockPanel LastChildFill="True">
+                            <!-- Place the docked element FIRST inside a DockPanel -->
+                            <Button DockPanel.Dock="Right" 
+                                    Background="Transparent" 
+                                    Padding="4,0"
+                                    Command="{Binding $parent[TabControl].((viewModels:LogDashboardDashboardViewModel)DataContext).CloseLog}" 
+                                    CommandParameter="{Binding}" >
+                                <iconPacks:LucideIcon Kind="X" Size="16" StrokeWidth="2"/>
+                            </Button>
+                            <TextBlock VerticalAlignment="Center" 
+                                       Text="{Binding FileName}" />
+                            
+                            <DockPanel.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuItem Header="Close" 
+                                              Command="{Binding $parent[TabControl].((viewModels:LogDashboardDashboardViewModel)DataContext).CloseLog}" 
+                                              CommandParameter="{Binding}" />
+                                    
+                                    <Separator />
+                                    
+                                    <MenuItem Header="CloseAll" 
+                                              Command="{Binding $parent[TabControl].((viewModels:LogDashboardDashboardViewModel)DataContext).CloseAllLogs}" 
+                                               />
+                                    
+                                </MenuFlyout>
+                            </DockPanel.ContextFlyout>
+                        </DockPanel>
                     </DataTemplate>
                 </TabControl.ItemTemplate>
             
